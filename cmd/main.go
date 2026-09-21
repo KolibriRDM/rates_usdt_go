@@ -61,7 +61,7 @@ func main() {
 		logger.Error("Не удалось настроить трассировку", "error", err)
 		return
 	}
-	defer func () {
+	defer func() {
 		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 		defer cancelShutdown()
 		err = tracerProvider.Shutdown(shutdownCtx)
@@ -92,7 +92,11 @@ func main() {
 		stop()
 		return
 	}
-	defer listener.Close()
+	defer func() {
+		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			logger.Error("Не удалось закрыть listener", "error", closeErr)
+		}
+	}()
 	reflection.Register(server)
 
 	go func() {

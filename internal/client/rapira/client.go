@@ -55,13 +55,13 @@ func (c *Client) GetOrderBook(ctx context.Context, symbol string) (result rate.O
 	receivedAt := time.Now().UTC()
 	span.SetAttributes(attribute.Int("http.response.status_code", response.StatusCode()))
 	if !response.IsSuccess() {
-		return rate.OrderBook{}, fmt.Errorf("Rapira returned HTTP status %d", response.StatusCode())
+		return rate.OrderBook{}, fmt.Errorf("rapira returned HTTP status %d", response.StatusCode())
 	}
 	if data.Ask.Symbol != symbol || data.Bid.Symbol != symbol {
-		return rate.OrderBook{}, fmt.Errorf("Rapira returned an unexpected trading symbol")
+		return rate.OrderBook{}, fmt.Errorf("rapira returned an unexpected trading symbol")
 	}
 	if len(data.Ask.Items) == 0 || len(data.Bid.Items) == 0 {
-		return rate.OrderBook{}, fmt.Errorf("Rapira returned an empty order book side")
+		return rate.OrderBook{}, fmt.Errorf("rapira returned an empty order book side")
 	}
 
 	book := rate.OrderBook{
@@ -72,13 +72,13 @@ func (c *Client) GetOrderBook(ctx context.Context, symbol string) (result rate.O
 	}
 	for _, item := range data.Ask.Items {
 		if !item.Price.IsPositive() || !item.Amount.IsPositive() {
-			return rate.OrderBook{}, fmt.Errorf("Rapira returned an ask with a non-positive price or amount")
+			return rate.OrderBook{}, fmt.Errorf("rapira returned an ask with a non-positive price or amount")
 		}
 		book.Asks = append(book.Asks, rate.Level{Price: item.Price, Amount: item.Amount})
 	}
 	for _, item := range data.Bid.Items {
 		if !item.Price.IsPositive() || !item.Amount.IsPositive() {
-			return rate.OrderBook{}, fmt.Errorf("Rapira returned a bid with a non-positive price or amount")
+			return rate.OrderBook{}, fmt.Errorf("rapira returned a bid with a non-positive price or amount")
 		}
 		book.Bids = append(book.Bids, rate.Level{Price: item.Price, Amount: item.Amount})
 	}

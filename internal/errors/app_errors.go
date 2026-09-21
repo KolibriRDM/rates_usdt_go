@@ -7,6 +7,6 @@ var (
 	ErrInvalidRange       = errors.New("range end must not be less than range start")
 	ErrInsufficientLevels = errors.New("not enough order book levels")
 
-	ErrUnsupportedMethod = errors.New("unsupported calculation method")
+	ErrUnsupportedMethod  = errors.New("unsupported calculation method")
 	ErrUnexpectedRangeEnd = errors.New("m must be zero for topN")
 )

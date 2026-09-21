@@ -3,20 +3,26 @@ package service
 import (
 	"context"
 
-	"example.com/rapira_rates/internal/client/rapira"
 	app_errors "example.com/rapira_rates/internal/errors"
 	"example.com/rapira_rates/internal/model/rate"
-	"example.com/rapira_rates/internal/repository"
 	"github.com/shopspring/decimal"
 )
 
+type rateRepository interface {
+	Save(context.Context, rate.Result) error
+}
+
+type orderBookClient interface {
+	GetOrderBook(context.Context, string) (rate.OrderBook, error)
+}
+
 type RateService struct {
-	repo   *repository.RateRepository
-	client *rapira.Client
+	repo   rateRepository
+	client orderBookClient
 	symbol string
 }
 
-func NewRateService(repo *repository.RateRepository, client *rapira.Client, symbol string) *RateService {
+func NewRateService(repo rateRepository, client orderBookClient, symbol string) *RateService {
 	return &RateService{
 		repo:   repo,
 		client: client,
