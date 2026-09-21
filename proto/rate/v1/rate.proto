@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package rate.v1;
+
+option go_package = "example.com/rapira_rates/gen/rate/v1;ratev1";
+
+import "google/protobuf/timestamp.proto";
+
+enum CalculationMethod {
+  CALCULATION_METHOD_UNSPECIFIED = 0;
+  CALCULATION_METHOD_TOP_N = 1;
+  CALCULATION_METHOD_AVG_NM = 2;
+}
+
+message RateResult {
+  string symbol = 1;
+  string ask = 2;
+  string bid = 3;
+  google.protobuf.Timestamp received_at = 4;
+  CalculationMethod method = 5;
+  uint32 n = 6;
+  uint32 m = 7;
+}
+
+service RateService {
+  rpc GetRates(GetRatesRequest) returns (GetRatesResponse);
+}
+
+message GetRatesRequest {
+  CalculationMethod method = 1;
+  uint32 n = 2;
+  uint32 m = 3;
+}
+
+message GetRatesResponse {
+  RateResult result = 1;
+}
