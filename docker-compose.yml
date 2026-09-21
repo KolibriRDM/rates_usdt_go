@@ -1,0 +1,43 @@
+name: rapira_rates
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: rapira_rates
+      POSTGRES_USER: rates
+      POSTGRES_PASSWORD: rates_local
+    ports:
+      - "127.0.0.1:15433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "rates", "-d", "rapira_rates"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.21.0
+    ports: ["127.0.0.1:16686:16686", "127.0.0.1:4318:4318"]
+
+  app:
+    build: .
+    depends_on:
+      jaeger:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://rates:rates_local@postgres:5432/rapira_rates?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318"
+      GRPC_ADDRESS: ":50052"
+      STARTUP_TIMEOUT: "${STARTUP_TIMEOUT:-5s}"
+      SHUTDOWN_TIMEOUT: "${SHUTDOWN_TIMEOUT:-5s}"
+    ports:
+      - "127.0.0.1:50052:50052"
+    stop_grace_period: 20s
+
+volumes:
+  postgres_data:
