@@ -31,13 +31,20 @@ import (
 )
 
 func main() {
+	if code := run(); code != 0 {
+		os.Exit(code)
+	}
+}
+
+func run() int {
 	cfg, err := config.Load()
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Println("rapira_rates: --database-url, --grpc-address, --startup-timeout, --shutdown-timeout (see README.md)")
-			return
+			return 0
 		}
-		log.Fatal(err)
+		log.Print(err)
+		return 1
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
@@ -47,7 +54,7 @@ func main() {
 	cancelDB()
 	if err != nil {
 		logger.Error("Не удалось подключиться к БД", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	defer pool.Close()
 	logger.Info("Подключение к БД установлено")
@@ -59,7 +66,7 @@ func main() {
 	cancelTelemetry()
 	if err != nil {
 		logger.Error("Не удалось настроить трассировку", "error", err)
-		return
+		return 1
 	}
 	defer func() {
 		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
@@ -90,7 +97,7 @@ func main() {
 	if err != nil {
 		logger.Error("Ошибка работы gRPC-сервера", "error", err)
 		stop()
-		return
+		return 1
 	}
 	defer func() {
 		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
@@ -99,12 +106,14 @@ func main() {
 	}()
 	reflection.Register(server)
 
+	serveErrors := make(chan error, 1)
 	go func() {
 		serveErr := server.Serve(listener)
 		if serveErr != nil && !errors.Is(serveErr, grpc.ErrServerStopped) {
 			logger.Error("Ошибка работы gRPC-сервера", "error", serveErr)
 			stop()
 		}
+		serveErrors <- serveErr
 	}()
 	logger.Info("gRPC-сервер запущен", "address", listener.Addr().String())
 
@@ -115,4 +124,8 @@ func main() {
 	server.GracefulStop()
 	grpcStopTimer.Stop()
 	logger.Info("Сервис остановлен")
+	if serveErr := <-serveErrors; serveErr != nil && !errors.Is(serveErr, grpc.ErrServerStopped) {
+		return 1
+	}
+	return 0
 }
